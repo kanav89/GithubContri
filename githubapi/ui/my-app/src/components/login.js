@@ -42,38 +42,18 @@ function MountainIcon(props) {
 }
 // const [isAuthorized, setAuthorized] = useState(false);
 function Login({ setAuthorized }) {
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [progress, setProgress] = useState(0);
   const handleSubmit = async () => {
     console.log("Redirecting...");
-    setLoading(true);
-    setError(null);
-    setData([]);
-    setProgress(0);
 
-    const apiUrl = `http://127.0.0.1:8000/login`;
+    const apiUrl = `https://github-contri-api.vercel.app/login`;
     console.log("API URL:", apiUrl);
 
     try {
       window.location.href = apiUrl;
-      // console.log("Response:", res);
-      // if (!res.ok) {
-      //   alert(`HTTP error! Status: ${res.status}`);
-      // }
-
-      // const data = await res.json();
-      // console.log("Data:", data);
-
-      // setData(data);
-      // setListofDates(newList);
     } catch (error) {
-      setError(error.message);
       console.error("Error fetching data:", error);
       console.log("error");
     } finally {
-      setLoading(false);
       console.log("Finished submitting");
       setAuthorized = true;
     }
