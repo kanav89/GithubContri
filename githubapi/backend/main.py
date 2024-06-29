@@ -2,7 +2,6 @@
 import os
 import sys
 from datetime import datetime, timedelta
-from typing import Annotated, List, Optional
 
 import httpx
 import requests
@@ -10,9 +9,7 @@ from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
-from passlib.context import CryptContext
 from starlette.middleware.cors import CORSMiddleware
-from starlette.requests import Request
 from starlette.responses import Response as StarletteResponse
 
 load_dotenv()
