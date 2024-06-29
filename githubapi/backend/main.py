@@ -19,18 +19,11 @@ github_client_id = os.getenv("GITHUB_CLIENT_ID")
 github_secret = os.getenv("GITHUB_SECRET")
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 # Configure CORS
-origins = [
-    "http://localhost:3000/login",
-    "http://localhost:3000",
-    "http://localhost:8000/login",
-    "http://localhost:8000/github-code",
-    "http://localhost:8000",
-    "http://localhost:3000/github-code"
-]
+
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

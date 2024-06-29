@@ -54,7 +54,7 @@ function Main() {
     console.log("API URL:", apiUrl);
 
     try {
-      const res = await fetch(apiUrl);
+      window.location.href(apiUrl);
       console.log("Response:", res);
       if (!res.ok) {
         alert(`HTTP error! Status: ${res.status}`);
