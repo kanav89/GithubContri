@@ -1,6 +1,6 @@
-flask
+fastapi
+uvicorn
 requests
 datetime
-argparse
-flask_restful
 httpx
+python-dotenv
