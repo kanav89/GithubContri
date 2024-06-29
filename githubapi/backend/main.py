@@ -7,9 +7,9 @@ import httpx
 import requests
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
-from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import Response as StarletteResponse
 
 load_dotenv()
