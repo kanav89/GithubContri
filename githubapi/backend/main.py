@@ -1,18 +1,47 @@
 #!/usr/local/bin/python3
+import os
 import sys
 from datetime import datetime, timedelta
+from typing import Annotated, List, Optional
 
+import httpx
 import requests
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import JSONResponse
+from dotenv import load_dotenv
+from fastapi import Depends, FastAPI, HTTPException
+from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.security.oauth2 import OAuth2PasswordRequestForm
+from passlib.context import CryptContext
+from starlette.middleware.cors import CORSMiddleware
+from starlette.requests import Request
+from starlette.responses import Response as StarletteResponse
 
-github_app = FastAPI()
+load_dotenv()
+app = FastAPI()
+
+github_client_id = os.getenv("GITHUB_CLIENT_ID")
+github_secret = os.getenv("GITHUB_SECRET")
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+# Configure CORS
+origins = [
+    "http://localhost:3000/login",
+    "http://localhost:3000",
+    "http://localhost:8000/login",
+    "http://localhost:8000/github-code",
+    "http://localhost:8000",
+    "http://localhost:3000/github-code"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 class Contributions:
-
     def __init__(self, username="", token="", start_date="", end_date=""):
-
         self.username = username
         self.token = token
         self.start_date = start_date
@@ -37,7 +66,6 @@ class Contributions:
             sys.exit("Invalid input(s). Try again.")  # modify acc to error
 
     def initialize(self):
-
         self.DATE_SINCE, e = self.correct_dates(self.start_date, -1)
         if e is not None:
             pass
@@ -47,7 +75,9 @@ class Contributions:
             pass
             # throw http error
         if self.DATE_SINCE >= self.DATE_UNTIL:
-            sys.exit("Entered 'start date' must be before the entered 'end date'. Try again.")
+            sys.exit(
+                "Entered 'start date' must be before the entered 'end date'. Try again."
+            )
 
         ds_obj = datetime.strptime(self.DATE_SINCE, "%Y-%m-%d").date()
         du_obj = datetime.strptime(self.DATE_UNTIL, "%Y-%m-%d").date()
@@ -57,7 +87,6 @@ class Contributions:
             self.contributions[d] = 0
 
     def get(self):
-
         def check_status(z):
             return z.status_code == 200
 
@@ -96,7 +125,8 @@ class Contributions:
 
                 # checking commits made in specific repo
                 commits_url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/commits?since={self.DATE_SINCE}"
-                commits_response = requests.get(commits_url, headers=self.header)
+                commits_response = requests.get(
+                    commits_url, headers=self.header)
 
                 # remove checking for 'commit' not in c later
                 if check_status(commits_response):
@@ -145,7 +175,7 @@ class Contributions:
 result = Contributions()
 
 
-@github_app.get("/contributions")
+@app.get("/contributions")
 def output(username: str, token: str, start_date: str, end_date: str):
     result = Contributions(username, token, start_date, end_date)
     try:
@@ -153,3 +183,40 @@ def output(username: str, token: str, start_date: str, end_date: str):
         return JSONResponse(content=r)
     except HTTPException as e:
         return JSONResponse(content=e)
+
+
+@app.get('/login')
+async def login():
+    return RedirectResponse(
+        f'https://github.com/login/oauth/authorize?client_id={github_client_id}', status_code=302
+    )
+
+
+@app.get('/github-code')
+async def github_code(code: str):
+    params = {
+        'client_id': github_client_id,
+        'client_secret': github_secret,
+        'code': code
+    }
+    headers = {'Accept': 'application/json'}
+    async with httpx.AsyncClient() as client:
+
+        response = await client.post(
+            url='https://github.com/login/oauth/access_token', params=params, headers=headers
+        )
+        response_json = response.json()
+        access_token = response_json["access_token"]
+    headers['Authorization'] = f'Bearer {access_token}'
+    async with httpx.AsyncClient() as client:
+
+        response = await client.get(
+            url='https://api.github.com/user', headers=headers
+        )
+        response_json = response.json()
+        # access_token = response_json["access_token"]
+        # print("ok")
+        username = response_json["login"]
+        res = RedirectResponse(
+            url=f"http://127.0.0.1:3000/main?username={username}&access_token={access_token}")
+        return res
