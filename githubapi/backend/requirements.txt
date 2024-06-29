@@ -3,3 +3,4 @@ requests
 datetime
 argparse
 flask_restful
+httpx
