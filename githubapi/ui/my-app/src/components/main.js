@@ -4,12 +4,10 @@ import { Button, TextInput, Progress, Label } from "flowbite-react";
 // import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import { Datepicker, Checkbox } from "flowbite-react";
-import Login from "./login.js";
 //import { parseISO} from 'date-fns';
 function Main() {
   const [data, setData] = useState([]);
-  const [name, setName] = useState("");
-  const [token, setToken] = useState("");
+
   const [sd, setSd] = useState("");
   const [ed, setEd] = useState("");
   const [loading, setLoading] = useState(false);
@@ -52,7 +50,7 @@ function Main() {
     const params = new URLSearchParams(window.location.search);
     const token = params.get("access_token");
     const name = params.get("username");
-    const apiUrl = `/contributions?username=${name}&token=${token}&start_date=${sd}&end_date=${ed}`;
+    const apiUrl = `https://gitub-contri-api.vercel.app/contributions?username=${name}&token=${token}&start_date=${sd}&end_date=${ed}`;
     console.log("API URL:", apiUrl);
 
     try {

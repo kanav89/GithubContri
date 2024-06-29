@@ -215,5 +215,5 @@ async def github_code(code: str):
         # print("ok")
         username = response_json["login"]
         res = RedirectResponse(
-            url=f"http://127.0.0.1:3000/main?username={username}&access_token={access_token}")
+            url=f"https://gitubcontri.vercel.app/main?username={username}&access_token={access_token}")
         return res
