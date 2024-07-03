@@ -1,6 +1,5 @@
-from database import Base, SessionLocal
+from database import Base
 from sqlalchemy import JSON, Column, Integer, String
-from sqlalchemy.orm import relationship
 
 
 class User(Base):
