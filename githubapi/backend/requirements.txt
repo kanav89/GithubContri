@@ -6,4 +6,4 @@ httpx
 python-dotenv
 sqlalchemy
 starlette
-psycopg2
+psycopg2-binary
