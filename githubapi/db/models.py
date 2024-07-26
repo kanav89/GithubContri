@@ -1,5 +1,6 @@
-from database import Base
 from sqlalchemy import JSON, Column, Integer, String
+
+from githubapi.db.database import Base
 
 
 class User(Base):

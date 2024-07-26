@@ -4,6 +4,4 @@ requests
 datetime
 httpx
 python-dotenv
-sqlalchemy
 starlette
-psycopg2-binary
