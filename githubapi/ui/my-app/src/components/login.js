@@ -45,7 +45,7 @@ function Login({ setAuthorized }) {
   const handleSubmit = async () => {
     console.log("Redirecting...");
 
-    const apiUrl = `https://github-contri-api.vercel.app/login`;
+    const apiUrl = `http://localhost:8000/login`;
     console.log("API URL:", apiUrl);
 
     try {

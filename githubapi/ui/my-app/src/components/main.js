@@ -35,7 +35,7 @@ function Main() {
     setData([]);
     const params = new URLSearchParams(window.location.search);
     const name = params.get("username");
-    const apiUrl = `https://github-contri-api.vercel.app/contributions?username=${name}&start_date=${sd}&end_date=${ed}`;
+    const apiUrl = `http://localhost:8000/contributions?username=${name}&start_date=${sd}&end_date=${ed}`;
     console.log("API URL:", apiUrl);
 
     try {

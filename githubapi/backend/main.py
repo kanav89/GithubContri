@@ -210,7 +210,7 @@ def output(
 @app.get("/login")
 async def login():
     return RedirectResponse(
-        f"https://github.com/login/oauth/authorize?client_id={github_client_id}&redirect_uri=https://github-contri-api.vercel.app/github-code",
+        f"https://github.com/login/oauth/authorize?client_id={github_client_id}&redirect_uri=http://localhost:8000/github-code",
         status_code=302,
     )
 
