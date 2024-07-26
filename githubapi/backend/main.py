@@ -5,17 +5,18 @@ from datetime import datetime, timedelta
 
 import httpx
 import requests
-from database import SessionLocal, engine
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
-from models import Base, User
 from sqlalchemy.orm import Session
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
+
+# from githubapi.db.database import SessionLocal, engine
+# from githubapi.db.models import Base, User
 
 load_dotenv()
 github_client_id = os.getenv("GITHUB_CLIENT_ID")
@@ -38,15 +39,15 @@ middleware = [
 app = FastAPI(middleware=middleware)
 
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+# def get_db():
+#     db = SessionLocal()
+#     try:
+#         yield db
+#     finally:
+#         db.close()
 
 
-Base.metadata.create_all(bind=engine)
+# Base.metadata.create_all(bind=engine)
 
 
 class Contributions:
@@ -176,14 +177,14 @@ class Contributions:
             if di in self.contributions.keys():
                 self.contributions[di] += 1
 
-        db_user = self.db.query(User).filter(User.username == self.username).first()
-        if not db_user:
-            db_user = User(username=self.username, contributions=self.contributions)
-            self.db.add(db_user)
-        else:
-            db_user.contributions = self.contributions
+        # db_user = self.db.query(User).filter(User.username == self.username).first()
+        # if not db_user:
+        #     db_user = User(username=self.username, contributions=self.contributions)
+        #     self.db.add(db_user)
+        # else:
+        #     db_user.contributions = self.contributions
 
-        self.db.commit()
+        # self.db.commit()
 
         return list(self.contributions.values())
 
@@ -193,11 +194,11 @@ result = Contributions()
 
 @app.get("/contributions")
 def output(
-    request: Request, username: str, start_date: str, end_date: str, db: Session = Depends(get_db)
+    request: Request, username: str, start_date: str, end_date: str  # db: Session = Depends(get_db)
 ):
     token = request.session.get("access_token")
     print(f"access token from session:{token}")
-    result = Contributions(username, token, start_date, end_date, db)
+    result = Contributions(username, token, start_date, end_date)  # db)
     try:
         r = result.get()
         return JSONResponse(content=r)
