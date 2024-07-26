@@ -35,7 +35,8 @@ function Main() {
     setData([]);
     const params = new URLSearchParams(window.location.search);
     const name = params.get("username");
-    const apiUrl = `/contributions?username=${name}&start_date=${sd}&end_date=${ed}`;
+    const access_token = params.get("access_token");
+    const apiUrl = `http://localhost:8000/contributions?username=${name}&start_date=${sd}&end_date=${ed}&access_token=${access_token}`;
     console.log("API URL:", apiUrl);
 
     try {
