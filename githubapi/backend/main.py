@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
 from models import Base, User
 from sqlalchemy.orm import Session
+from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
@@ -24,10 +25,14 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 
 middleware = [
-    Middleware(SessionMiddleware,
-               secret_key="your-secret-key", https_only=True),
-    Middleware(CORSMiddleware, allow_origins=[
-               "*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"]),
+    Middleware(SessionMiddleware, secret_key="your-secret-key", https_only=True),
+    Middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    ),
 ]
 
 app = FastAPI(middleware=middleware)
@@ -80,9 +85,7 @@ class Contributions:
             pass
             # throw http error
         if self.DATE_SINCE >= self.DATE_UNTIL:
-            sys.exit(
-                "Entered 'start date' must be before the entered 'end date'. Try again."
-            )
+            sys.exit("Entered 'start date' must be before the entered 'end date'. Try again.")
 
         ds_obj = datetime.strptime(self.DATE_SINCE, "%Y-%m-%d").date()
         du_obj = datetime.strptime(self.DATE_UNTIL, "%Y-%m-%d").date()
@@ -130,8 +133,7 @@ class Contributions:
 
                 # checking commits made in specific repo
                 commits_url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/commits?since={self.DATE_SINCE}"
-                commits_response = requests.get(
-                    commits_url, headers=self.header)
+                commits_response = requests.get(commits_url, headers=self.header)
 
                 # remove checking for 'commit' not in c later
                 if check_status(commits_response):
@@ -174,11 +176,9 @@ class Contributions:
             if di in self.contributions.keys():
                 self.contributions[di] += 1
 
-        db_user = self.db.query(User).filter(
-            User.username == self.username).first()
+        db_user = self.db.query(User).filter(User.username == self.username).first()
         if not db_user:
-            db_user = User(username=self.username,
-                           contributions=self.contributions)
+            db_user = User(username=self.username, contributions=self.contributions)
             self.db.add(db_user)
         else:
             db_user.contributions = self.contributions
@@ -192,7 +192,9 @@ result = Contributions()
 
 
 @app.get("/contributions")
-def output(request: Request, username: str, start_date: str, end_date: str, db: Session = Depends(get_db)):
+def output(
+    request: Request, username: str, start_date: str, end_date: str, db: Session = Depends(get_db)
+):
     token = request.session.get("access_token")
     print(f"access token from session:{token}")
     result = Contributions(username, token, start_date, end_date, db)
@@ -203,39 +205,33 @@ def output(request: Request, username: str, start_date: str, end_date: str, db: 
         return JSONResponse(content=e)
 
 
-@app.get('/login')
+@app.get("/login")
 async def login():
     return RedirectResponse(
-        f'https://github.com/login/oauth/authorize?client_id={github_client_id}&redirect_uri=http://127.0.0.1:8000/github-code', status_code=302
+        f"https://github.com/login/oauth/authorize?client_id={github_client_id}&redirect_uri=https://github-contri-api.vercel.app/github-code",
+        status_code=302,
     )
 
 
-@app.get('/github-code')
+@app.get("/github-code")
 async def github_code(code: str, request: Request):
-    params = {
-        'client_id': github_client_id,
-        'client_secret': github_secret,
-        'code': code
-    }
-    headers = {'Accept': 'application/json'}
+    params = {"client_id": github_client_id, "client_secret": github_secret, "code": code}
+    headers = {"Accept": "application/json"}
     async with httpx.AsyncClient() as client:
 
         response = await client.post(
-            url='https://github.com/login/oauth/access_token', params=params, headers=headers
+            url="https://github.com/login/oauth/access_token", params=params, headers=headers
         )
         response_json = response.json()
         access_token = response_json["access_token"]
         request.session["access_token"] = access_token
-    headers['Authorization'] = f'Bearer {access_token}'
+    headers["Authorization"] = f"Bearer {access_token}"
     async with httpx.AsyncClient() as client:
 
-        response = await client.get(
-            url='https://api.github.com/user', headers=headers
-        )
+        response = await client.get(url="https://api.github.com/user", headers=headers)
         response_json = response.json()
         # access_token = response_json["access_token"]
         # print("ok")
         username = response_json["login"]
-        res = RedirectResponse(
-            url=f"https://githubcontri.vercel.app/main?username={username}")
+        res = RedirectResponse(url=f"https://githubcontri.vercel.app/main?username={username}")
         return res

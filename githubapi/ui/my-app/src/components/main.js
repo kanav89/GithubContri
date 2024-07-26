@@ -1,12 +1,11 @@
 import React, { useState } from "react";
 import { Button, Label } from "flowbite-react";
-
+import { BarChart } from "@mui/x-charts/BarChart";
 import "react-datepicker/dist/react-datepicker.css";
 import { Datepicker } from "flowbite-react";
 
 function Main() {
   const [data, setData] = useState([]);
-
   const [sd, setSd] = useState("");
   const [ed, setEd] = useState("");
   const [loading, setLoading] = useState(false);
@@ -35,7 +34,6 @@ function Main() {
     setError(null);
     setData([]);
     const params = new URLSearchParams(window.location.search);
-    // const token = params.get("access_token");
     const name = params.get("username");
     const apiUrl = `https://github-contri-api.vercel.app/contributions?username=${name}&start_date=${sd}&end_date=${ed}`;
     console.log("API URL:", apiUrl);
@@ -67,13 +65,16 @@ function Main() {
     }
   };
 
+  const barChartData = data.map((item) => item.contribution);
+  const barChartLabels = data.map((item) => item.date);
+
   return (
-    <div>
+    <div className="min-h-full">
       <header className="bg-black text-white text-primary-foreground px-4 py-3 font-bold">
         Main Header
       </header>
-      <div className="flex justify-center items-center h-screen">
-        <div>
+      <div className="flex flex-col justify-center items-center h-screen">
+        <div className="mt-36">
           <header className="bg-black text-white text-primary-foreground px-4 py-3 font-bold">
             Date Picker
           </header>
@@ -88,7 +89,7 @@ function Main() {
                       setSd(formatDate(date));
                     }}
                     placeholder="Select start date"
-                    dateformat="yyyy-MM-dd"
+                    dateFormat="yyyy-MM-dd"
                   />
                 </div>
               </div>
@@ -101,7 +102,7 @@ function Main() {
                       setEd(formatDate(date));
                     }}
                     placeholder="Select end date"
-                    dateformat="yyyy-MM-dd"
+                    dateFormat="yyyy-MM-dd"
                   />
                 </div>
               </div>
@@ -116,14 +117,16 @@ function Main() {
             </div>
             {loading && <div>Loading...</div>}
             {error && <div className="text-red-500">{error}</div>}
-            {data.length > 0 && (
-              <div>
-                <h2 className="font-bold mt-4">Contributions</h2>
-                <table className="min-w-full bg-white">
-                  <thead>
+          </div>
+          {data.length > 0 && (
+            <div className="mt-8 w-full">
+              <h2 className="font-bold mt-4">Contributions</h2>
+              <div className="overflow-auto max-h-60">
+                <table className="bg-white w-full">
+                  <thead className="sticky top-0 bg-white">
                     <tr>
-                      <th className="py-2">Date</th>
-                      <th className="py-2">Contribution</th>
+                      <th className="py-2 border">Date</th>
+                      <th className="py-2 border">Contribution</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -136,12 +139,20 @@ function Main() {
                   </tbody>
                 </table>
               </div>
-            )}
-          </div>
-          <footer className="bg-muted text-muted-foreground px-4 py-3 text-sm">
-            This will return a List of Contribution between any selected dates.
-          </footer>
+              <div className="">
+                <BarChart
+                  series={[{ data: barChartData }]}
+                  height={290}
+                  xAxis={[{ data: barChartLabels, scaleType: "band" }]}
+                  // margin={{ top: 10, bottom: 30, left: 40, right: 10 }}
+                />
+              </div>
+            </div>
+          )}
         </div>
+        <footer className="bg-muted text-muted-foreground  text-sm ">
+          This will return a list of contributions between any selected dates.
+        </footer>
       </div>
     </div>
   );
