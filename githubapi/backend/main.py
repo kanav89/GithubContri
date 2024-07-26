@@ -9,7 +9,8 @@ from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
-from sqlalchemy.orm import Session
+
+# from sqlalchemy.orm import Session
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
@@ -51,7 +52,7 @@ app = FastAPI(middleware=middleware)
 
 
 class Contributions:
-    def __init__(self, username="", token="", start_date="", end_date="", db: Session = None):
+    def __init__(self, username="", token="", start_date="", end_date=""):  # db: Session = None)
         self.username = username
         self.token = token
         self.start_date = start_date
@@ -64,7 +65,7 @@ class Contributions:
         # declaring list of dates
         self.dates_commits = []
         self.dates_issues = []
-        self.db = db
+        # self.db = db
 
     def correct_dates(self, date_str, checker):
         try:
