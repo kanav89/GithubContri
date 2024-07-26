@@ -5,3 +5,4 @@ datetime
 httpx
 python-dotenv
 starlette
+itsdangerous==2.0.1
