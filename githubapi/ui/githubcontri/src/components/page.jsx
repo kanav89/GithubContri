@@ -47,9 +47,9 @@ function Page() {
     const params = new URLSearchParams(window.location.search);
     const name = params.get("username");
     setUsername(name)
-    const access_token = params.get("access_token");
-    localStorage.setItem("github_access_token", access_token);
-    const apiUrl = `http://localhost:8000/contributions?username=${name}&start_date=${sd}&end_date=${ed}&access_token=${access_token}`;
+    // const access_token = params.get("access_token");
+    // localStorage.setItem("username", name);
+    const apiUrl = `http://localhost:8000/contributions?username=${name}&start_date=${sd}&end_date=${ed}`;
     console.log("API URL:", apiUrl);
 
     try {
@@ -79,8 +79,7 @@ function Page() {
     }
   };
 
-  const barChartData = data.map((item) => item.contribution);
-  const barChartLabels = data.map((item) => item.date);
+  
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-100">

@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import {Navbar, NavbarBrand, NavbarContent, NavbarItem, Avatar} from "@nextui-org/react";
 
-function Layout({ children, username,accessToken }) {
+function Layout({ children, username }) {
   return (
     <div className="flex flex-col min-h-full">
       <Navbar className="bg-black" >
@@ -21,7 +21,7 @@ function Layout({ children, username,accessToken }) {
             </Link>
           </NavbarItem>
           <NavbarItem>
-            <Link to={`/page?username=${username}&access_token=${accessToken}`} className="text-white">
+            <Link to={`/page?username=${username}`} className="text-white">
               Contributions
             </Link>
           </NavbarItem>
