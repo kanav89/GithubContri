@@ -1,16 +1,30 @@
 import os
 import sys
+import logging
 from datetime import datetime, timedelta
-
+from starlette.middleware.sessions import SessionMiddleware
+from starlette.config import Config
 import httpx
 import requests
 from database import Base, SessionLocal, engine
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
-from models import Streak, User
+from models import Goal, Streak, User,OAuth2Token
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from starlette.middleware.cors import CORSMiddleware
+from fastapi.middleware.cors import CORSMiddleware
+from database import SessionLocal
+from starlette.responses import JSONResponse
+import secrets
+from authlib.integrations.starlette_client import OAuth, OAuthError
+from auth import login, auth, oauth
+from fastapi import APIRouter
+from starlette.middleware.sessions import SessionMiddleware
+
+
+
+config = Config('.env')
 
 load_dotenv()
 github_client_id = os.getenv("GITHUB_CLIENT_ID")
@@ -18,11 +32,16 @@ github_secret = os.getenv("GITHUB_SECRET")
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 # token = os.getenv("TEST_AUTH")
 app = FastAPI()
-
+router = APIRouter()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"]
+    allow_origins=["http://localhost:5173"],  # Add your frontend URL
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
+
+app.add_middleware(SessionMiddleware, secret_key="your-secret-key")
 
 Base.metadata.create_all(bind=engine)
 
@@ -33,6 +52,12 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+class GoalCreate(BaseModel):
+    username: str
+    goal_type: str
+    target: int
 
 
 class StreakTracker:
@@ -149,8 +174,10 @@ class Contributions:
         user = self.db.query(User).filter(
             User.username == self.username).first()
         if not user:
-            user = User(username=self.username, contributions={})
+            user = User(username=self.username,
+                        access_token=self.token, contributions={})
             self.db.add(user)
+
             self.db.commit()
             self.db.refresh(user)
         return user
@@ -249,7 +276,14 @@ class Contributions:
 
 
 @app.get("/contributions")
-def output(request: Request, username: str, start_date: str, end_date: str, access_token: str, db: Session = Depends(get_db)):
+def output(request: Request, username: str, start_date: str, end_date: str, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    access_token = user.access_token
+    if not access_token:
+        raise HTTPException(status_code=401, detail="Access token not found")
 
     headers = {"Authorization": f"Bearer {access_token}"}
     response = requests.get("https://api.github.com/user", headers=headers)
@@ -270,34 +304,18 @@ def output(request: Request, username: str, start_date: str, end_date: str, acce
 
 
 @app.get("/login")
-async def login():
-    return RedirectResponse(
-        f"https://github.com/login/oauth/authorize?client_id={github_client_id}&redirect_uri=http://localhost:8000/github-code",
-        status_code=302,
-    )
+async def login_route(request: Request):
+    return await login(request)
+
+@router.get("/auth",name="auth")
+async def auth_route(code: str, request: Request, db: Session = Depends(get_db)):
+    return await auth( request, db)
 
 
-@app.get("/github-code")
-async def github_code(code: str, request: Request):
-    params = {"client_id": github_client_id,
-              "client_secret": github_secret, "code": code}
-    headers = {"Accept": "application/json"}
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            url="https://github.com/login/oauth/access_token", params=params, headers=headers
-        )
-        response_json = response.json()
-        access_token = response_json["access_token"]
-        print(access_token)
-
-    headers["Authorization"] = f"Bearer {access_token}"
-    async with httpx.AsyncClient() as client:
-        response = await client.get(url="https://api.github.com/user", headers=headers)
-        response_json = response.json()
-        username = response_json["login"]
-        res = RedirectResponse(
-            url=f"http://localhost:5173/page?username={username}&access_token={access_token}")
-        return res
+@app.get('/logout')
+async def logout(request):
+    request.session.pop('user', None)
+    return RedirectResponse(url='/')
 
 
 @app.get("/streak-history")
@@ -321,3 +339,94 @@ def get_streak_history(username: str, db: Session = Depends(get_db)):
     }
     print(response_data)
     return JSONResponse(content=response_data)
+
+
+@app.post("/set-goal")
+async def set_goal(goal: GoalCreate, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.username == goal.username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    start_date = datetime.now().date()
+    if goal.goal_type == "daily":
+        end_date = start_date
+    elif goal.goal_type == "weekly":
+        end_date = start_date + timedelta(days=6)
+    elif goal.goal_type == "monthly":
+        end_date = (start_date.replace(day=1) + timedelta(days=32)
+                    ).replace(day=1) - timedelta(days=1)
+    else:
+        raise HTTPException(status_code=400, detail="Invalid goal type")
+
+    new_goal = Goal(username=goal.username, goal_type=goal.goal_type,
+                    target=goal.target, start_date=start_date, end_date=end_date)
+    db.add(new_goal)
+    db.commit()
+    db.refresh(new_goal)
+    return {"message": "Goal set successfully"}
+
+
+@app.get("/get-goals")
+def get_goals(username: str, db: Session = Depends(get_db)):
+    goals = db.query(Goal).filter(Goal.username == username).all()
+    return goals
+
+
+@app.get("/check-goal-progress")
+def check_goal_progress(username: str, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    access_token = user.access_token
+    # username = user.username
+    if not access_token:
+        raise HTTPException(status_code=401, detail="Access token not found")
+
+    goals = db.query(Goal).filter(Goal.username == username).all()
+    progress = []
+
+    for goal in goals:
+        end_date = min(goal.end_date, datetime.now().date())
+        contri = Contributions(username, access_token, str(
+            goal.start_date), str(end_date), db)
+        contributions_data = contri.get()
+        contributions = sum(contributions_data['contributions'])
+
+        progress.append({
+            "goal_type": goal.goal_type,
+            "target": goal.target,
+            "current": contributions,
+            "start_date": str(goal.start_date),
+            "end_date": str(goal.end_date),
+            "is_completed": datetime.now().date() > goal.end_date,
+            "is_achieved": contributions >= goal.target
+        })
+
+    return progress
+
+
+@app.put("/update-goal/{goal_id}")
+def update_goal(goal_id: int, goal_type: str, target: int, db: Session = Depends(get_db)):
+    goal = db.query(Goal).filter(Goal.id == goal_id).first()
+    if not goal:
+        raise HTTPException(status_code=404, detail="Goal not found")
+
+    goal.goal_type = goal_type
+    goal.target = target
+    db.commit()
+    return {"message": "Goal updated successfully"}
+
+
+@app.delete("/delete-goal/{goal_id}")
+def delete_goal(goal_id: int, db: Session = Depends(get_db)):
+    goal = db.query(Goal).filter(Goal.id == goal_id).first()
+    if not goal:
+        raise HTTPException(status_code=404, detail="Goal not found")
+
+    db.delete(goal)
+    db.commit()
+    return {"message": "Goal deleted successfully"}
+
+
+app.include_router(router)

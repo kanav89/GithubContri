@@ -1,8 +1,20 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import {Navbar, NavbarBrand, NavbarContent, NavbarItem, Avatar} from "@nextui-org/react";
+import { Link, useNavigate } from 'react-router-dom';
+import {Navbar, NavbarBrand, NavbarContent, NavbarItem, Avatar, Button} from "@nextui-org/react";
+
+
 
 function Layout({ children, username }) {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    // Clear local storage
+    localStorage.removeItem('username');
+    localStorage.removeItem('accessToken');
+    // Redirect to login page
+    navigate('/');
+  };
+
   return (
     <div className="flex flex-col min-h-full">
       <Navbar className="bg-black" >
@@ -36,6 +48,14 @@ function Layout({ children, username }) {
             size="sm"
             src="https://i.pravatar.cc/150?u=a042581f4e29026704d"
           />
+          <Button 
+            color="danger" 
+            variant="flat" 
+            onClick={handleLogout}
+            className="ml-2"
+          >
+            Logout
+          </Button>
         </NavbarContent>
       </Navbar>
       <main>{children}</main>
