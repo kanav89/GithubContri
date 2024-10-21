@@ -2,6 +2,7 @@ from fastapi import Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse, HTMLResponse
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
+
 from database import get_db
 from models import User,OAuth2Token
 from authlib.integrations.starlette_client import OAuth,OAuthError
